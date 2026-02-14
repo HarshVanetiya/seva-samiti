@@ -1,0 +1,148 @@
+// Community Fund Management System - Prisma Schema
+// Cash in hand is calculated dynamically from TransactionLog (not stored)
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Admin users who can access the system
+model Operator {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique
+  password  String   // bcrypt hashed
+  createdAt DateTime @default(now())
+
+  @@map("operators")
+}
+
+// Organisation - Cached metrics for performance (updated atomically)
+model Organisation {
+  id        Int      @id @default(autoincrement())
+  name      String
+  amount    Float    @default(0) // Current cash in hand (updated in transactions)
+  profit    Float    @default(0) // Total interest earned (updated in transactions)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("organisations")
+}
+
+// Members who can donate and take loans
+model Member {
+  id            Int              @id @default(autoincrement())
+  accountNumber String           @unique
+  name          String
+  fathersName   String
+  mobile        String?          // Optional
+  address       String?
+  joiningDate   DateTime         @default(now())
+  isActive      Boolean          @default(true)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  
+  // Relations
+  account       Account?
+  loans         Loan[]
+  transactions  TransactionLog[]
+
+  @@map("members")
+}
+
+// Member's account balance from membership fees and donations
+model Account {
+  id             Int      @id @default(autoincrement())
+  memberId       Int      @unique
+  totalAmount    Float    @default(0)
+  basicFee       Float    @default(0)
+  developmentFee Float    @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  
+  // Relations
+  member         Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@map("accounts")
+}
+
+// Loan records for members
+model Loan {
+  id                 Int           @id @default(autoincrement())
+  memberId           Int
+  principalAmount    Float
+  remainingBalance   Float         // Tracks remaining principal
+  interestRate       Float         // Annual interest rate percentage
+  loanDate           DateTime      @default(now())
+  status             LoanStatus    @default(ACTIVE)
+  completedAt        DateTime?
+  scheme             LoanScheme    @default(NEW_SCHEME) // NEW_SCHEME or OLD_SCHEME calculation method
+  totalInterestPaid  Float         @default(0)
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  
+  // Relations
+  member             Member        @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  payments           LoanPayment[]
+  transactions       TransactionLog[]
+
+  @@map("loans")
+}
+
+// Individual loan installment payments (interest-only until settlement)
+model LoanPayment {
+  id             Int              @id @default(autoincrement())
+  loanId         Int
+  paymentDate    DateTime         @default(now())
+  interestAmount Float            @default(0) // Monthly interest payment
+  principalPaid  Float            @default(0) // Usually 0 until final settlement
+  createdAt      DateTime         @default(now())
+  
+  // Relations
+  loan           Loan             @relation(fields: [loanId], references: [id], onDelete: Cascade)
+  transactions   TransactionLog[]
+
+  @@map("loan_payments")
+}
+
+// All money movements - SINGLE SOURCE OF TRUTH for cash calculation
+model TransactionLog {
+  id               Int             @id @default(autoincrement())
+  type             TransactionType
+  amount           Float
+  description      String?
+  relatedMemberId  Int?
+  relatedLoanId    Int?
+  relatedPaymentId Int?
+  createdAt        DateTime        @default(now())
+  
+  // Relations
+  member           Member?         @relation(fields: [relatedMemberId], references: [id], onDelete: SetNull)
+  loan             Loan?           @relation(fields: [relatedLoanId], references: [id], onDelete: SetNull)
+  payment          LoanPayment?    @relation(fields: [relatedPaymentId], references: [id], onDelete: SetNull)
+
+  @@map("transaction_logs")
+}
+
+// Enums
+enum LoanStatus {
+  ACTIVE
+  COMPLETED
+}
+
+enum LoanScheme {
+  NEW_SCHEME
+  OLD_SCHEME
+}
+
+enum TransactionType {
+  DONATION          // Money donated to fund (+)
+  MEMBERSHIP        // Membership fee (+)
+  LOAN_DISBURSEMENT // Money given as loan (-)
+  LOAN_PAYMENT      // Interest/principal payment from member (+)
+  EXPENSE           // Organization expense (-)
+  RELEASED_MONEY    // Short-term cash release to member (-)
+}
