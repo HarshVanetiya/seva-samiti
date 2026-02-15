@@ -48,13 +48,16 @@ export interface MembersResponse {
     };
 }
 
+export interface MemberParams {
+    page?: number;
+    limit?: number;
+    search?: string;
+    isActive?: boolean;
+    excludeActiveLoans?: boolean;
+}
+
 export const memberService = {
-    getAll: async (params?: {
-        page?: number;
-        limit?: number;
-        search?: string;
-        isActive?: boolean;
-    }) => {
+    getAll: async (params?: MemberParams) => {
         const response = await api.get<MembersResponse>('/members', { params });
         return response.data;
     },

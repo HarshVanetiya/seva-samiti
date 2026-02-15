@@ -143,6 +143,7 @@ const getAllMembers = async (req, res) => {
             limit = 50,
             search = '',
             isActive = 'true',
+            excludeActiveLoans,
         } = req.query;
 
         const skip = (parseInt(page) - 1) * parseInt(limit);
@@ -157,6 +158,13 @@ const getAllMembers = async (req, res) => {
                     { accountNumber: { contains: search, mode: 'insensitive' } },
                     { fathersName: { contains: search, mode: 'insensitive' } },
                 ],
+            }),
+            ...(excludeActiveLoans === 'true' && {
+                loans: {
+                    none: {
+                        status: 'ACTIVE',
+                    },
+                },
             }),
         };
 

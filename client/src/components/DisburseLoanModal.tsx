@@ -52,7 +52,7 @@ const DisburseLoanModal: React.FC<DisburseLoanModalProps> = ({ open, onClose, on
 
   const fetchMembers = async () => {
     try {
-      const response = await memberService.getAll({ limit: 1000 });
+      const response = await memberService.getAll({ limit: 1000, excludeActiveLoans: true });
       setMembers(response.data.members);
     } catch (err) {
       console.error('Failed to fetch members:', err);

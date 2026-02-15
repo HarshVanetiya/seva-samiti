@@ -293,7 +293,9 @@ const getAllLoans = async (req, res) => {
                     },
                 },
                 orderBy: {
-                    loanDate: 'desc',
+                    member: {
+                        accountNumber: 'asc',
+                    },
                 },
                 skip,
                 take,
