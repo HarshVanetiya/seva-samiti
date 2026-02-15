@@ -51,6 +51,8 @@ export const loanService = {
         limit?: number;
         status?: 'ACTIVE' | 'COMPLETED';
         memberId?: number;
+        search?: string;
+        pagination?: boolean;
     }) => {
         const response = await api.get('/loans', { params });
         return response.data;

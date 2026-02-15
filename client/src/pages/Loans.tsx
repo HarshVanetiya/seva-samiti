@@ -14,7 +14,10 @@ import {
   Chip,
   Tabs,
   Tab,
+  InputAdornment,
+  TextField,
 } from '@mui/material';
+import SearchIcon from '@mui/icons-material/Search';
 import AddIcon from '@mui/icons-material/Add';
 import type { Loan } from '../services/loanService';
 import { loanService } from '../services/loanService';
@@ -26,6 +29,7 @@ const Loans = () => {
   const [loans, setLoans] = useState<Loan[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<'ACTIVE' | 'COMPLETED'>('ACTIVE');
+  const [search, setSearch] = useState('');
   const [disburseLoanOpen, setDisburseLoanOpen] = useState(false);
   const [addPaymentOpen, setAddPaymentOpen] = useState(false);
   const [selectedLoan, setSelectedLoan] = useState<Loan | null>(null);
@@ -33,7 +37,11 @@ const Loans = () => {
   const fetchLoans = async () => {
     setLoading(true);
     try {
-      const response = await loanService.getAll({ status: tab, limit: 50 });
+      const response = await loanService.getAll({ 
+        status: tab, 
+        search,
+        pagination: false // Fetch all matching records
+      });
       setLoans(response.data.loans);
     } catch (error) {
       console.error('Failed to fetch loans:', error);
@@ -43,8 +51,12 @@ const Loans = () => {
   };
 
   useEffect(() => {
-    fetchLoans();
-  }, [tab]);
+    const timer = setTimeout(() => {
+      fetchLoans();
+    }, 300);
+    
+    return () => clearTimeout(timer);
+  }, [tab, search]);
 
   const handleAddPayment = (loan: Loan) => {
     setSelectedLoan(loan);
@@ -58,6 +70,9 @@ const Loans = () => {
       </Box>
     );
   }
+
+  // Import InputAdornment and SearchIcon if not already imported (Need to check imports first)
+  // Actually, let's just add the search field below the header.
 
   return (
     <Box>
@@ -91,6 +106,27 @@ const Loans = () => {
             <Tab label="Active Loans" value="ACTIVE" />
             <Tab label="Completed Loans" value="COMPLETED" />
         </Tabs>
+        <Box p={2} borderTop={1} borderColor="divider">
+             <TextField
+              fullWidth
+              placeholder="Search by member name, father's name, or account number..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              size="small"
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon color="action" />
+                  </InputAdornment>
+                ),
+              }}
+              sx={{ 
+                '& .MuiOutlinedInput-root': {
+                  bgcolor: 'background.default'
+                }
+              }}
+            />
+        </Box>
       </Paper>
 
       <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }}>

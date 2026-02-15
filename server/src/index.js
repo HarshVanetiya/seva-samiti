@@ -23,6 +23,7 @@ app.use('/api/members', memberRouter);
 app.use('/api/loans', loanRouter);
 app.use('/api/transactions', transactionRouter);
 app.use('/api/dashboard', overviewRouter);
+app.use('/api/reports', require('./routes/report.routes'));
 
 // Health check route
 app.get('/health', (req, res) => {

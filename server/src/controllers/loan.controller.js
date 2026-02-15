@@ -252,14 +252,26 @@ const getAllLoans = async (req, res) => {
             limit = 50,
             status,
             memberId,
+            search,
+            pagination
         } = req.query;
 
-        const skip = (parseInt(page) - 1) * parseInt(limit);
-        const take = parseInt(limit);
+        // If pagination is explicitly disabled or limit is -1, fetch all
+        const isPaginationDisabled = pagination === 'false' || limit === '-1';
+
+        const skip = isPaginationDisabled ? undefined : (parseInt(page) - 1) * parseInt(limit);
+        const take = isPaginationDisabled ? undefined : parseInt(limit);
 
         const where = {
             ...(status && { status }),
             ...(memberId && { memberId: parseInt(memberId) }),
+            ...(search && {
+                OR: [
+                    { member: { name: { contains: search, mode: 'insensitive' } } },
+                    { member: { accountNumber: { contains: search, mode: 'insensitive' } } },
+                    { member: { fathersName: { contains: search, mode: 'insensitive' } } },
+                ],
+            }),
         };
 
         const [loans, total] = await Promise.all([

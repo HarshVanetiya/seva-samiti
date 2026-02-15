@@ -169,9 +169,10 @@ const getTransactionHistory = async (req, res) => {
                         },
                     },
                 },
-                orderBy: {
-                    createdAt: 'desc',
-                },
+                orderBy: [
+                    { createdAt: 'desc' },
+                    { id: 'desc' }
+                ],
                 skip,
                 take,
             }),

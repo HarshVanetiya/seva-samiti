@@ -39,7 +39,7 @@ const DisburseLoanModal: React.FC<DisburseLoanModalProps> = ({ open, onClose, on
     defaultValues: {
       memberId: 0,
       principalAmount: 0,
-      interestRate: 2,
+      interestRate: 1,
       scheme: 'OLD_SCHEME',
     },
   });

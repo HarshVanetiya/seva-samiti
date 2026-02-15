@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Typography,
@@ -26,15 +26,20 @@ import {
 } from 'recharts';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import MonetizationOnIcon from '@mui/icons-material/MonetizationOn';
+import PaymentIcon from '@mui/icons-material/Payment';
 import PeopleIcon from '@mui/icons-material/People';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import WarningIcon from '@mui/icons-material/Warning';
+import DescriptionIcon from '@mui/icons-material/Description';
+import StorageIcon from '@mui/icons-material/Storage';
 import DefaultersModal from '../components/DefaultersModal';
+import { reportService } from '../services/reportService';
 import { dashboardService } from '../services/dashboardService';
 import type { DashboardData } from '../services/dashboardService';
 import { formatDate } from '../utils/dateUtils';
+import { useEffect, useState } from 'react';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const StatsCard = ({ title, value, icon, color, subtitle }: any) => {
@@ -88,7 +93,68 @@ const Dashboard = () => {
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [openDefaulters, setOpenDefaulters] = useState(false);
+
+  const navigate = useNavigate();
   const theme = useTheme();
+
+  // ... inside Dashboard component ...
+  const [reportLoading, setReportLoading] = useState<'ORG' | 'MEMBER' | 'BACKUP' | null>(null);
+
+  const handleDownloadOrgReport = async () => {
+    try {
+      setReportLoading('ORG');
+      const blob = await reportService.getOrganisationReport();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'Organisation_Report.xlsx'); // or .csv if fallback
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode?.removeChild(link);
+    } catch (error) {
+      console.error('Failed to download organisation report', error);
+    } finally {
+      setReportLoading(null);
+    }
+  };
+
+  const handleDownloadMemberReport = async () => {
+    try {
+      setReportLoading('MEMBER');
+      const blob = await reportService.getMemberReport();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'Member_Report.xlsx');
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode?.removeChild(link);
+    } catch (error) {
+      console.error('Failed to download member report', error);
+    } finally {
+      setReportLoading(null);
+    }
+  };
+
+  const handleDownloadBackup = async () => {
+    try {
+      setReportLoading('BACKUP');
+      const blob = await reportService.getDatabaseBackup();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      // Filename will be set by Content-Disposition header usually, but fallback here
+      const date = new Date().toISOString().split('T')[0];
+      link.setAttribute('download', `backup_${date}.sql`);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode?.removeChild(link);
+    } catch (error) {
+      console.error('Failed to download backup', error);
+    } finally {
+      setReportLoading(null);
+    }
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -129,6 +195,8 @@ const Dashboard = () => {
     { name: 'Jun', amount: 5500 },
   ];
 
+
+
   return (
     <Box>
       <Box mb={4} display="flex" justifyContent="space-between" alignItems="center">
@@ -140,14 +208,49 @@ const Dashboard = () => {
             Overview of your community fund status
           </Typography>
         </Box>
-        <Button
-          variant="outlined"
-          color="error"
-          startIcon={<WarningIcon />}
-          onClick={() => setOpenDefaulters(true)}
-        >
-          Defaulters List
-        </Button>
+        <Box display="flex" gap={2}>
+            <Button
+              variant="outlined"
+              startIcon={<DescriptionIcon />}
+              onClick={handleDownloadOrgReport}
+              disabled={reportLoading === 'ORG'}
+            >
+              {reportLoading === 'ORG' ? 'Generating...' : 'Organisation Report'}
+            </Button>
+            <Button
+              variant="outlined"
+              startIcon={<DescriptionIcon />}
+              onClick={handleDownloadMemberReport}
+              disabled={reportLoading === 'MEMBER'}
+            >
+              {reportLoading === 'MEMBER' ? 'Generating...' : 'Member Report'}
+            </Button>
+            <Button
+              variant="outlined" // or contained distinct color
+              color="secondary"
+              startIcon={<StorageIcon />}
+              onClick={handleDownloadBackup}
+              disabled={reportLoading === 'BACKUP'}
+            >
+              {reportLoading === 'BACKUP' ? 'Backing up...' : 'Backup DB'}
+            </Button>
+            <Button
+            variant="contained"
+            color="success"
+            startIcon={<PaymentIcon />}
+            onClick={() => navigate('/loans')}
+            >
+            Add Payment
+            </Button>
+            <Button
+            variant="outlined"
+            color="error"
+            startIcon={<WarningIcon />}
+            onClick={() => setOpenDefaulters(true)}
+            >
+            Defaulters List
+            </Button>
+        </Box>
       </Box>
 
       {/* Stats Cards Grid */}

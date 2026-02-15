@@ -25,7 +25,7 @@ const createMember = async (req, res) => {
             });
         }
 
-        if (!membershipFee || membershipFee <= 0) {
+        if (membershipFee === undefined || membershipFee === null || membershipFee < 0) {
             return res.status(400).json({
                 success: false,
                 message: 'Valid membership fee is required',
