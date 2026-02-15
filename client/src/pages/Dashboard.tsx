@@ -15,6 +15,7 @@ import {
   alpha,
   Button,
 } from '@mui/material';
+import { motion } from 'framer-motion';
 import {
   XAxis,
   YAxis,
@@ -40,6 +41,21 @@ import { dashboardService } from '../services/dashboardService';
 import type { DashboardData } from '../services/dashboardService';
 import { formatDate } from '../utils/dateUtils';
 import { useEffect, useState } from 'react';
+
+const container = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1
+    }
+  }
+};
+
+const item = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0 }
+};
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const StatsCard = ({ title, value, icon, color, subtitle }: any) => {
@@ -254,48 +270,48 @@ const Dashboard = () => {
       </Box>
 
       {/* Stats Cards Grid */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr 1fr' }, gap: 3, mb: 4 }}>
-        <Box>
-          <StatsCard
-            title="Total Cash in Hand"
-            value={`₹${fund.cashInHand.toLocaleString()}`}
-            icon={<AccountBalanceWalletIcon />}
-            color={theme.palette.primary.main}
-            subtitle="+12% from last month"
-          />
-        </Box>
-        <Box>
-          <StatsCard
-            title="Active Loans"
-            value={`₹${loans.totalActiveAmount.toLocaleString()}`}
-            icon={<MonetizationOnIcon />}
-            color={theme.palette.warning.main}
-            subtitle={`${loans.totalActive} active loans`}
-          />
-        </Box>
-        <Box>
+      <Box component={motion.div} variants={container} initial="hidden" animate="show" sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr 1fr' }, gap: 3, mb: 4 }}>
+        <Box component={motion.div} variants={item} whileHover={{ y: -5 }}>
           <StatsCard
             title="Total Members"
-            value={members.total}
-            icon={<PeopleIcon />}
-            color={theme.palette.success.main}
-            subtitle="2 joined this month"
+            value={members.total || 0}
+            icon={<PeopleIcon sx={{ fontSize: 40 }} />}
+            color={theme.palette.primary.main}
+            // Assuming 'loading' prop is passed to StatCard
           />
         </Box>
-        <Box>
+        <Box component={motion.div} variants={item} whileHover={{ y: -5 }}>
+          <StatsCard
+            title="Total Fund"
+            value={`₹${fund.cashInHand?.toLocaleString() || 0}`}
+            icon={<AccountBalanceWalletIcon sx={{ fontSize: 40 }} />}
+            color={theme.palette.success.main}
+            // Assuming 'loading' prop is passed to StatCard
+          />
+        </Box>
+        <Box component={motion.div} variants={item} whileHover={{ y: -5 }}>
+          <StatsCard
+            title="Active Loans"
+            value={loans.totalActive || 0}
+            icon={<MonetizationOnIcon sx={{ fontSize: 40 }} />}
+            color={theme.palette.warning.main}
+            // Assuming 'loading' prop is passed to StatCard
+          />
+        </Box>
+        <Box component={motion.div} variants={item} whileHover={{ y: -5 }}>
           <StatsCard
             title="Profit / Interest"
-            value={`₹${fund.totalProfit.toLocaleString()}`}
-            icon={<TrendingUpIcon />}
+            value={`₹${fund.totalProfit?.toLocaleString() || 0}`}
+            icon={<TrendingUpIcon sx={{ fontSize: 40 }} />}
             color={theme.palette.secondary.main}
-            subtitle="Generated this year"
+            // Assuming 'loading' prop is passed to StatCard
           />
         </Box>
       </Box>
 
       {/* Main Content Grid (Chart + Transactions) */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '2fr 1fr' }, gap: 3 }}>
-        <Box>
+      <Box component={motion.div} variants={container} initial="hidden" animate="show" sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '2fr 1fr' }, gap: 3 }}>
+        <Box component={motion.div} variants={item}>
           <Paper sx={{ p: 3, height: '100%' }}>
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
               <Typography variant="h6">Fund Growth</Typography>
@@ -331,7 +347,7 @@ const Dashboard = () => {
           </Paper>
         </Box>
 
-        <Box>
+        <Box component={motion.div} variants={item}>
           <Paper sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
             <Box p={3} borderBottom={`1px solid ${theme.palette.divider}`}>
               <Typography variant="h6">Recent Transactions</Typography>

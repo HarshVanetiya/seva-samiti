@@ -12,65 +12,80 @@ declare module '@mui/material/styles' {
 export const theme = createTheme({
     palette: {
         primary: {
-            main: '#0B3C5D', // Deep Trust Blue
-            light: '#1F5F8B',
-            dark: '#072A40',
+            main: '#6366f1', // Indigo 500
+            light: '#818cf8',
+            dark: '#4f46e5',
             contrastText: '#ffffff',
         },
         secondary: {
-            main: '#EF6C00', // Warning/Pending Orange
+            main: '#f43f5e', // Rose 500
+            light: '#fb7185',
+            dark: '#e11d48',
             contrastText: '#ffffff',
         },
         error: {
-            main: '#C62828', // Danger Red
-            light: '#FFEBEE',
+            main: '#ef4444',
+            light: '#fee2e2',
         },
         success: {
-            main: '#2E7D32', // Success Green
-            light: '#E8F5E9',
+            main: '#10b981', // Emerald 500
+            light: '#d1fae5',
+        },
+        warning: {
+            main: '#f59e0b', // Amber 500
+            light: '#fef3c7',
         },
         background: {
-            default: '#F5F7FA', // Neutral Background
-            paper: '#FFFFFF',
+            default: '#f8fafc', // Slate 50
+            paper: '#ffffff',
         },
         text: {
-            primary: '#1C1C1C',
-            secondary: '#616161',
+            primary: '#0f172a', // Slate 900
+            secondary: '#64748b', // Slate 500
         },
         neutral: {
-            main: '#64748B',
+            main: '#64748b',
             contrastText: '#fff',
         },
     },
     typography: {
-        fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
-        h1: { fontWeight: 600 },
-        h2: { fontWeight: 600 },
-        h3: { fontWeight: 600 },
-        h4: { fontWeight: 600, fontSize: '24px' }, // Page Title
-        h5: { fontWeight: 600, fontSize: '22px' }, // Card Numbers
-        h6: { fontWeight: 600, fontSize: '18px' }, // Section Title
-        body1: { fontSize: '14px' }, // Table Text
-        body2: { fontSize: '13px' }, // Labels
-        button: { textTransform: 'none', fontWeight: 500 },
+        fontFamily: '"Plus Jakarta Sans", "Inter", sans-serif',
+        h1: { fontWeight: 700, letterSpacing: '-0.025em' },
+        h2: { fontWeight: 700, letterSpacing: '-0.025em' },
+        h3: { fontWeight: 600, letterSpacing: '-0.025em' },
+        h4: { fontWeight: 600, fontSize: '1.75rem', letterSpacing: '-0.025em' },
+        h5: { fontWeight: 600, fontSize: '1.25rem' },
+        h6: { fontWeight: 600, fontSize: '1rem' },
+        body1: { fontSize: '0.95rem', lineHeight: 1.6 },
+        body2: { fontSize: '0.875rem' },
+        button: { textTransform: 'none', fontWeight: 600, letterSpacing: '0.01em' },
     },
     shape: {
-        borderRadius: 8,
+        borderRadius: 16,
     },
     components: {
         MuiButton: {
             styleOverrides: {
                 root: {
-                    borderRadius: 8,
+                    borderRadius: 12,
+                    padding: '10px 24px',
                     boxShadow: 'none',
+                    transition: 'all 0.2s ease-in-out',
                     '&:hover': {
-                        boxShadow: 'none',
+                        transform: 'translateY(-1px)',
+                        boxShadow: '0 4px 12px rgba(99, 102, 241, 0.2)', // Colored shadow
                     },
                 },
                 containedPrimary: {
-                    backgroundColor: '#0B3C5D',
+                    background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
                     '&:hover': {
-                        backgroundColor: '#072A40',
+                        background: 'linear-gradient(135deg, #4f46e5 0%, #4338ca 100%)',
+                    },
+                },
+                outlined: {
+                    borderWidth: '1.5px',
+                    '&:hover': {
+                        borderWidth: '1.5px',
                     },
                 },
             },
@@ -78,9 +93,16 @@ export const theme = createTheme({
         MuiCard: {
             styleOverrides: {
                 root: {
-                    borderRadius: 12,
-                    boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.05)', // Soft shadow
-                    padding: '16px',
+                    borderRadius: 24,
+                    boxShadow: '0 10px 30px -10px rgba(0, 0, 0, 0.05)',
+                    border: '1px solid rgba(255, 255, 255, 0.5)',
+                    background: 'rgba(255, 255, 255, 0.9)',
+                    backdropFilter: 'blur(10px)',
+                    transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+                    '&:hover': {
+                        transform: 'translateY(-4px)',
+                        boxShadow: '0 20px 40px -10px rgba(0, 0, 0, 0.1)',
+                    },
                 },
             },
         },
@@ -88,32 +110,70 @@ export const theme = createTheme({
             styleOverrides: {
                 root: {
                     backgroundImage: 'none',
+                    borderRadius: 20,
+                },
+                elevation1: {
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)',
+                },
+            },
+        },
+        MuiTextField: {
+            styleOverrides: {
+                root: {
+                    '& .MuiOutlinedInput-root': {
+                        borderRadius: 12,
+                        backgroundColor: '#f8fafc',
+                        transition: 'all 0.2s',
+                        '& fieldset': {
+                            borderColor: '#e2e8f0',
+                        },
+                        '&:hover fieldset': {
+                            borderColor: '#cbd5e1',
+                        },
+                        '&.Mui-focused': {
+                            backgroundColor: '#ffffff',
+                            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.03)',
+                        }
+                    },
                 },
             },
         },
         MuiTableCell: {
             styleOverrides: {
                 head: {
-                    backgroundColor: '#F0F2F5',
+                    backgroundColor: '#f8fafc',
+                    color: '#64748b',
                     fontWeight: 600,
-                    color: '#1C1C1C',
+                    textTransform: 'uppercase',
+                    fontSize: '0.75rem',
+                    letterSpacing: '0.05em',
+                    borderBottom: '1px solid #e2e8f0',
                 },
                 body: {
-                    padding: '12px 16px',
+                    borderBottom: '1px solid #f1f5f9',
                 },
             },
         },
         MuiTableRow: {
             styleOverrides: {
                 root: {
-                    '&:nth-of-type(even)': {
-                        backgroundColor: '#FAFAFA', // Zebra stripes (very subtle)
-                    },
+                    transition: 'background-color 0.2s',
                     '&:hover': {
-                        backgroundColor: '#F5F7FA !important', // Hover highlight
+                        backgroundColor: '#f8fafc !important',
                     },
                 },
             },
         },
+        MuiChip: {
+            styleOverrides: {
+                root: {
+                    borderRadius: 8,
+                    fontWeight: 500,
+                },
+                filled: {
+                    backgroundColor: '#f1f5f9',
+                }
+            }
+        }
     },
 });
