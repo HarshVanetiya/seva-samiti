@@ -291,8 +291,9 @@ const Dashboard = () => {
         </Box>
         <Box component={motion.div} variants={item} whileHover={{ y: -5 }}>
           <StatsCard
-            title="Active Loans"
-            value={loans.totalActive || 0}
+            title="Active Loan Value"
+            value={`₹${loans.totalActiveAmount?.toLocaleString() || 0}`}
+            subtitle={`${loans.totalActive || 0} Active Loans`}
             icon={<MonetizationOnIcon sx={{ fontSize: 40 }} />}
             color={theme.palette.warning.main}
             // Assuming 'loading' prop is passed to StatCard
