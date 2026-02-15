@@ -102,6 +102,7 @@ const AddDonationModal: React.FC<AddDonationModalProps> = ({ open, onClose, onSu
               slotProps={{
                 textField: {
                   fullWidth: true,
+                  autoFocus: true,
                 }
               }}
             />

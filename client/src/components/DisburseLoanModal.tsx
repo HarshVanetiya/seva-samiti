@@ -124,6 +124,7 @@ const DisburseLoanModal: React.FC<DisburseLoanModalProps> = ({ open, onClose, on
                 <TextField
                   {...params}
                   label="Select Member"
+                  autoFocus
                   required
                   error={!!errors.memberId}
                   helperText={errors.memberId?.message}

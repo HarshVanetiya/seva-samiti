@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
@@ -22,6 +22,7 @@ interface AddMemberModalProps {
 const AddMemberModal: React.FC<AddMemberModalProps> = ({ open, onClose, onSuccess }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const nameInputRef = useRef<HTMLInputElement>(null);
 
   const {
     register,
@@ -32,13 +33,29 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({ open, onClose, onSucces
   } = useForm<AddMemberFormData>({
     resolver: zodResolver(addMemberSchema),
     defaultValues: {
-      name: '',
-      fathersName: '',
+      name: 'shri',
+      fathersName: 'shri',
       mobile: '',
       membershipFee: 500,
       joiningDate: new Date().toISOString().split('T')[0],
+      accountNumber: '',
     },
   });
+
+  useEffect(() => {
+    if (open) {
+      // Small timeout to allow modal animation to complete/render
+      const timer = setTimeout(() => {
+        if (nameInputRef.current) {
+          nameInputRef.current.focus();
+          const val = nameInputRef.current.value;
+          // Move cursor to end
+          nameInputRef.current.setSelectionRange(val.length, val.length);
+        }
+      }, 100); 
+      return () => clearTimeout(timer);
+    }
+  }, [open]);
 
   const onSubmit = async (data: AddMemberFormData) => {
     setError('');
@@ -51,6 +68,7 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({ open, onClose, onSucces
         mobile: data.mobile?.trim() || undefined,
         membershipFee: data.membershipFee,
         joiningDate: data.joiningDate,
+        accountNumber: data.accountNumber?.trim() || undefined,
       });
 
       reset();
@@ -91,19 +109,24 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({ open, onClose, onSucces
     >
       <Box component="form" onSubmit={handleSubmit(onSubmit)} sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
         {error && <Alert severity="error">{error}</Alert>}
+
         
+
         <TextField
           label="Name"
           {...register('name')}
+          inputRef={(e) => {
+            register('name').ref(e);
+            nameInputRef.current = e;
+          }}
           error={!!errors.name}
           helperText={errors.name?.message}
           required
           fullWidth
-          autoFocus
           placeholder="Enter member name"
           inputProps={{ style: { textTransform: 'uppercase' } }}
         />
-        
+
         <TextField
           label="Father's Name"
           {...register('fathersName')}
@@ -122,6 +145,15 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({ open, onClose, onSucces
           helperText={errors.mobile?.message}
           fullWidth
           placeholder="Enter 10 digit mobile number"
+        />
+
+        <TextField
+          label="Account Number (Optional)"
+          {...register('accountNumber')}
+          fullWidth
+          placeholder="Leave blank to auto-generate"
+          helperText={errors.accountNumber?.message}
+          error={!!errors.accountNumber}
         />
         
         <Controller

@@ -204,6 +204,7 @@ const AddPaymentModal: React.FC<AddPaymentModalProps> = ({ open, onClose, onSucc
               slotProps={{
                 textField: {
                   fullWidth: true,
+                  autoFocus: true,
                 }
               }}
             />
@@ -217,7 +218,7 @@ const AddPaymentModal: React.FC<AddPaymentModalProps> = ({ open, onClose, onSucc
           error={!!errors.interestPaid}
           helperText={errors.interestPaid?.message || `Suggested for ${monthsPassed} months: ₹${totalSuggestedInterest}`}
           fullWidth
-          autoFocus
+          
           inputProps={{ min: 0 }}
           placeholder={`Suggested: ₹${totalSuggestedInterest}`}
         />

@@ -11,6 +11,7 @@ export const addMemberSchema = z.object({
     mobile: z.string().optional(),
     membershipFee: z.number().min(0, 'Membership fee cannot be negative'),
     joiningDate: z.string().optional(),
+    accountNumber: z.string().optional(),
 });
 
 export type AddMemberFormData = z.infer<typeof addMemberSchema>;

@@ -15,6 +15,7 @@ const createMember = async (req, res) => {
             basicFee = 0,
             developmentFee = 0,
             joiningDate,
+            accountNumber: providedAccountNumber,
         } = req.body;
 
         // Validation
@@ -32,8 +33,8 @@ const createMember = async (req, res) => {
             });
         }
 
-        // Generate account number (simple format: M + timestamp + random)
-        const accountNumber = `M${Date.now()}${Math.floor(Math.random() * 1000)}`;
+        // Generate account number if not provided (simple format: M + timestamp + random)
+        const accountNumber = providedAccountNumber || `M${Date.now()}${Math.floor(Math.random() * 1000)}`;
 
         // Determine transaction date
         const now = new Date();

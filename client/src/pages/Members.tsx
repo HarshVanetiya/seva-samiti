@@ -11,9 +11,9 @@ import {
   TableHead,
   TableRow,
   Paper,
-  CircularProgress,
   TextField,
   InputAdornment,
+  LinearProgress,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import AddIcon from '@mui/icons-material/Add';
@@ -28,6 +28,13 @@ const Members = () => {
   const [search, setSearch] = useState('');
   const [page] = useState(1);
   const [addModalOpen, setAddModalOpen] = useState(false);
+  const [editingMemberId, setEditingMemberId] = useState<number | null>(null);
+  const [editFormData, setEditFormData] = useState<{
+    name: string;
+    fathersName: string;
+    mobile: string;
+  }>({ name: '', fathersName: '', mobile: '' });
+  const [saveLoading, setSaveLoading] = useState(false);
   const navigate = useNavigate();
 
   const fetchMembers = async () => {
@@ -42,6 +49,43 @@ const Members = () => {
     }
   };
 
+  const handleEditClick = (member: Member) => {
+    setEditingMemberId(member.id);
+    setEditFormData({
+      name: member.name,
+      fathersName: member.fathersName,
+      mobile: member.mobile || '',
+    });
+  };
+
+  const handleCancelClick = () => {
+    setEditingMemberId(null);
+    setEditFormData({ name: '', fathersName: '', mobile: '' });
+  };
+
+  const handleSaveClick = async (id: number) => {
+    setSaveLoading(true);
+    try {
+      await memberService.update(id, {
+        name: editFormData.name.trim().toUpperCase(),
+        fathersName: editFormData.fathersName.trim().toUpperCase(),
+        mobile: editFormData.mobile.trim() || undefined,
+      });
+      
+      // Update local state to reflect changes without full refetch if possible, 
+      // or just refetch. Refetch is safer for derived data but update is faster.
+      // Let's refetch to be safe and consistent.
+      await fetchMembers();
+      setEditingMemberId(null);
+    } catch (error) {
+      console.error('Failed to update member:', error);
+      // Ideally show a snackbar here
+      alert('Failed to update member');
+    } finally {
+      setSaveLoading(false);
+    }
+  };
+
   useEffect(() => {
     const timer = setTimeout(() => {
       fetchMembers();
@@ -51,17 +95,33 @@ const Members = () => {
   }, [search]); // Only re-fetch when search changes
 
   useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Check if space is pressed
+      if (e.key === ' ' && !addModalOpen) {
+        // Check if active element is input or textarea or has contenteditable
+        const activeElement = document.activeElement as HTMLElement;
+        const isInputActive = 
+          activeElement.tagName === 'INPUT' || 
+          activeElement.tagName === 'TEXTAREA' || 
+          activeElement.isContentEditable;
+
+        if (!isInputActive) {
+          e.preventDefault(); // Prevent scrolling
+          setAddModalOpen(true);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [addModalOpen]);
+
+  useEffect(() => {
     fetchMembers();
   }, [page]); // Re-fetch when page changes
 
-  if (loading) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        <CircularProgress />
-      </Box>
-    );
-  }
-
+  // Removed blocking loading check to keep input in focus
+  
   return (
     <Box>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
@@ -104,6 +164,8 @@ const Members = () => {
         />
       </Paper>
 
+      {loading && <LinearProgress sx={{ mb: 1 }} />}
+
       <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }}>
         <Table>
           <TableHead>
@@ -125,11 +187,47 @@ const Members = () => {
                     <Typography variant="body2" fontWeight="600">{member.accountNumber}</Typography>
                 </TableCell>
                 <TableCell>
-                    <Typography variant="body2" fontWeight="500">{member.name}</Typography>
-                    <Typography variant="caption" color="text.secondary">Joined: {formatDate(member.joiningDate || member.createdAt)}</Typography> 
+                    {editingMemberId === member.id ? (
+                      <TextField 
+                        size="small" 
+                        value={editFormData.name} 
+                        onChange={(e) => setEditFormData({...editFormData, name: e.target.value})}
+                        fullWidth
+                        inputProps={{ style: { textTransform: 'uppercase' } }}
+                      />
+                    ) : (
+                      <>
+                        <Typography variant="body2" fontWeight="500">{member.name}</Typography>
+                        <Typography variant="caption" color="text.secondary">Joined: {formatDate(member.joiningDate || member.createdAt)}</Typography> 
+                      </>
+                    )}
                 </TableCell>
-                <TableCell>{member.fathersName}</TableCell>
-                <TableCell>{member.mobile || '-'}</TableCell>
+                <TableCell>
+                    {editingMemberId === member.id ? (
+                      <TextField 
+                        size="small" 
+                        value={editFormData.fathersName} 
+                        onChange={(e) => setEditFormData({...editFormData, fathersName: e.target.value})}
+                        fullWidth
+                        inputProps={{ style: { textTransform: 'uppercase' } }}
+                      />
+                    ) : (
+                      member.fathersName
+                    )}
+                </TableCell>
+                <TableCell>
+                    {editingMemberId === member.id ? (
+                      <TextField 
+                        size="small" 
+                        value={editFormData.mobile} 
+                        onChange={(e) => setEditFormData({...editFormData, mobile: e.target.value})}
+                        fullWidth
+                        placeholder="Mobile"
+                      />
+                    ) : (
+                      member.mobile || '-'
+                    )}
+                </TableCell>
                 <TableCell align="right">
                   <Typography variant="body2" fontWeight="600" color="primary.main">
                     ₹{member.account?.totalAmount.toLocaleString() || 0}
@@ -175,14 +273,47 @@ const Members = () => {
                     </Box>
                 </TableCell>
                 <TableCell align="right">
-                  <Button 
-                    size="small" 
-                    variant="outlined" 
-                    sx={{ borderRadius: 2 }}
-                    onClick={() => navigate(`/members/${member.id}`)}
-                  >
-                    View Details
-                  </Button>
+                  {editingMemberId === member.id ? (
+                     <Box display="flex" gap={1} justifyContent="flex-end">
+                        <Button
+                          size="small"
+                          variant="contained"
+                          color="success"
+                          onClick={() => handleSaveClick(member.id)}
+                          disabled={saveLoading}
+                        >
+                          Save
+                        </Button>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          color="error"
+                          onClick={handleCancelClick}
+                          disabled={saveLoading}
+                        >
+                          Cancel
+                        </Button>
+                     </Box>
+                  ) : (
+                    <Box display="flex" gap={1} justifyContent="flex-end">
+                      <Button 
+                        size="small" 
+                        variant="outlined" 
+                        sx={{ borderRadius: 2 }}
+                        onClick={() => handleEditClick(member)}
+                      >
+                        Edit
+                      </Button>
+                      <Button 
+                        size="small" 
+                        variant="outlined" 
+                        sx={{ borderRadius: 2 }}
+                        onClick={() => navigate(`/members/${member.id}`)}
+                      >
+                        View
+                      </Button>
+                    </Box>
+                  )}
                 </TableCell>
               </TableRow>
             ))}
@@ -190,7 +321,7 @@ const Members = () => {
         </Table>
       </TableContainer>
 
-      {members.length === 0 && (
+      {!loading && members.length === 0 && (
         <Box textAlign="center" py={8} bgcolor="background.paper" sx={{ borderBottomLeftRadius: 8, borderBottomRightRadius: 8, border: '1px solid', borderColor: 'divider', borderTop: 'none' }}>
             <Typography variant="h6" color="text.secondary" gutterBottom>
             No members found

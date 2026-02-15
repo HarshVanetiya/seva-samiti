@@ -10,12 +10,12 @@ import {
   TableHead,
   TableRow,
   Paper,
-  CircularProgress,
   Chip,
   Tabs,
   Tab,
   InputAdornment,
   TextField,
+  LinearProgress,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import AddIcon from '@mui/icons-material/Add';
@@ -58,18 +58,34 @@ const Loans = () => {
     return () => clearTimeout(timer);
   }, [tab, search]);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Check if space is pressed
+      if (e.key === ' ' && !disburseLoanOpen && !addPaymentOpen) {
+        // Check if active element is input or textarea or has contenteditable
+        const activeElement = document.activeElement as HTMLElement;
+        const isInputActive = 
+          activeElement.tagName === 'INPUT' || 
+          activeElement.tagName === 'TEXTAREA' || 
+          activeElement.isContentEditable;
+
+        if (!isInputActive) {
+          e.preventDefault(); // Prevent scrolling
+          setDisburseLoanOpen(true);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [disburseLoanOpen, addPaymentOpen]);
+
   const handleAddPayment = (loan: Loan) => {
     setSelectedLoan(loan);
     setAddPaymentOpen(true);
   };
 
-  if (loading) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        <CircularProgress />
-      </Box>
-    );
-  }
+  // Removed blocking loading check to keep input in focus
 
   // Import InputAdornment and SearchIcon if not already imported (Need to check imports first)
   // Actually, let's just add the search field below the header.
@@ -127,6 +143,7 @@ const Loans = () => {
               }}
             />
         </Box>
+        {loading && <LinearProgress />}
       </Paper>
 
       <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }}>
@@ -201,7 +218,7 @@ const Loans = () => {
         </Table>
       </TableContainer>
 
-      {loans.length === 0 && (
+      {!loading && loans.length === 0 && (
         <Box textAlign="center" py={8} bgcolor="background.paper" sx={{ borderBottomLeftRadius: 8, borderBottomRightRadius: 8, border: '1px solid', borderColor: 'divider', borderTop: 'none' }}>
           <Typography color="text.secondary">
             No {tab.toLowerCase()} loans found.

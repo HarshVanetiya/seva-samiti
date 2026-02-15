@@ -32,6 +32,7 @@ export interface CreateMemberData {
     basicFee?: number;
     developmentFee?: number;
     joiningDate?: string;
+    accountNumber?: string;
 }
 
 export interface MembersResponse {

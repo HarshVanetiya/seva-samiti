@@ -100,6 +100,7 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ open, onClose, onSucc
               slotProps={{
                 textField: {
                   fullWidth: true,
+                  autoFocus: true,
                 }
               }}
             />
