@@ -4,6 +4,7 @@ const {
     addDonation,
     addExpense,
     getTransactionHistory,
+    revertTransaction,
 } = require('../controllers/transaction.controller');
 const { authenticate } = require('../middleware/auth');
 
@@ -13,5 +14,6 @@ router.use(authenticate);
 router.post('/donations', addDonation);
 router.post('/expenses', addExpense);
 router.get('/history', getTransactionHistory);
+router.post('/:id/revert', revertTransaction);
 
 module.exports = router;

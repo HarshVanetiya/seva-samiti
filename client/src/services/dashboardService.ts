@@ -76,4 +76,9 @@ export const dashboardService = {
         const response = await api.get('/transactions/history', { params });
         return response.data;
     },
+
+    revertTransaction: async (id: number) => {
+        const response = await api.post(`/transactions/${id}/revert`);
+        return response.data;
+    },
 };

@@ -15,6 +15,7 @@ import {
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
+import UndoIcon from '@mui/icons-material/Undo';
 import { dashboardService } from '../services/dashboardService';
 import AddDonationModal from '../components/AddDonationModal';
 import AddExpenseModal from '../components/AddExpenseModal';
@@ -48,6 +49,19 @@ const Transactions = () => {
       console.error('Failed to fetch transactions:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRevert = async (id: number) => {
+    if (!window.confirm('Are you sure you want to revert this transaction? This action cannot be undone.')) {
+      return;
+    }
+    try {
+      await dashboardService.revertTransaction(id);
+      fetchTransactions();
+    } catch (error) {
+      console.error('Failed to revert transaction:', error);
+      alert('Failed to revert transaction');
     }
   };
 
@@ -117,6 +131,7 @@ const Transactions = () => {
               <TableCell>Description</TableCell>
               <TableCell>Member</TableCell>
               <TableCell align="right">Amount</TableCell>
+              <TableCell align="right">Action</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -150,6 +165,18 @@ const Transactions = () => {
                     {['DONATION', 'MEMBERSHIP', 'LOAN_PAYMENT', 'INTEREST_PAYMENT'].includes(tx.type) ? '+' : '-'}
                     ₹{tx.amount.toLocaleString()}
                   </Typography>
+                </TableCell>
+                <TableCell align="right">
+                  {tx.type !== 'CANCELLED' && (
+                    <Button
+                      size="small"
+                      color="warning"
+                      startIcon={<UndoIcon />}
+                      onClick={() => handleRevert(tx.id)}
+                    >
+                      Revert
+                    </Button>
+                  )}
                 </TableCell>
               </TableRow>
             ))}

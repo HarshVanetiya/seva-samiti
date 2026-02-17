@@ -32,6 +32,7 @@ const AddPaymentModal: React.FC<AddPaymentModalProps> = ({ open, onClose, onSucc
     control,
     reset,
     watch,
+    setValue,
     formState: { errors },
   } = useForm<AddPaymentFormData>({
     resolver: zodResolver(addPaymentSchema),
@@ -95,20 +96,20 @@ const AddPaymentModal: React.FC<AddPaymentModalProps> = ({ open, onClose, onSucc
 
   const paymentDate = watch('paymentDate');
 
-  if (!loan) return null;
+  // Removed early return here: if (!loan) return null;
 
   const displayLoan = fullLoan || loan;
 
   // 1. Determine Last Payment Date
   // If payments exist, use the most recent payment date. Otherwise, use the loan creation date.
-  const lastPaymentDate = displayLoan.payments && displayLoan.payments.length > 0
+  const lastPaymentDate = displayLoan?.payments && displayLoan.payments.length > 0
     ? displayLoan.payments[0].paymentDate // Assuming payments are ordered by date desc from backend
-    : displayLoan.loanDate;
+    : displayLoan?.loanDate;
 
   // 2. Calculate Time Period (Months)
   // Logic: Count full months. e.g., Feb to Oct = 8 months.
-  const calculateMonths = (startDateStr: string, endDateStr?: string) => {
-    if (!endDateStr) return 0;
+  const calculateMonths = (startDateStr?: string, endDateStr?: string) => {
+    if (!startDateStr || !endDateStr) return 0;
     const start = new Date(startDateStr);
     const end = new Date(endDateStr);
     
@@ -128,12 +129,22 @@ const AddPaymentModal: React.FC<AddPaymentModalProps> = ({ open, onClose, onSucc
   // 3. Calculate Interest Per Month
   // OLD_SCHEME: Interest on Original Principal
   // NEW_SCHEME: Interest on Remaining Balance
-  const interestPerMonth = displayLoan.scheme === 'OLD_SCHEME'
-    ? Math.round(displayLoan.principalAmount * (displayLoan.interestRate / 100))
-    : Math.round(displayLoan.remainingBalance * (displayLoan.interestRate / 100));
+  // Handle case where displayLoan might be null safely (though we won't render if it is)
+  const interestPerMonth = displayLoan
+    ? (displayLoan.scheme === 'OLD_SCHEME'
+        ? Math.round(displayLoan.principalAmount * (displayLoan.interestRate / 100))
+        : Math.round(displayLoan.remainingBalance * (displayLoan.interestRate / 100)))
+    : 0;
 
   // 4. Calculate Total Suggested Interest
   const totalSuggestedInterest = monthsPassed * interestPerMonth;
+
+  // Auto-fill suggested interest
+  useEffect(() => {
+    setValue('interestPaid', totalSuggestedInterest);
+  }, [totalSuggestedInterest, setValue]);
+
+  if (!loan || !displayLoan) return null;
 
   return (
     <Modal

@@ -6,6 +6,7 @@ const {
     getAllLoans,
     getLoanById,
     getOverdueLoans,
+    updateLoan,
 } = require('../controllers/loan.controller');
 const { authenticate } = require('../middleware/auth');
 
@@ -17,6 +18,7 @@ router.post('/', createLoan);
 router.get('/', getAllLoans);
 router.get('/overdue', getOverdueLoans);
 router.get('/:id', getLoanById);
+router.put('/:id', updateLoan); // Added update route
 router.post('/:loanId/payments', addLoanPayment);
 
 module.exports = router;

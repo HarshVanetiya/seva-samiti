@@ -440,10 +440,79 @@ const getOverdueLoans = async (req, res) => {
     }
 };
 
+/**
+ * Update loan details (e.g. loan date)
+ */
+const updateLoan = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { loanDate } = req.body;
+
+        const loan = await prisma.loan.findUnique({
+            where: { id: parseInt(id) },
+            include: { payments: { orderBy: { paymentDate: 'asc' } } }
+        });
+
+        if (!loan) {
+            return res.status(404).json({
+                success: false,
+                message: 'Loan not found',
+            });
+        }
+
+        if (loanDate) {
+            const newDate = new Date(loanDate);
+            // Validation: Cannot be after first payment
+            if (loan.payments.length > 0) {
+                const firstPaymentDate = new Date(loan.payments[0].paymentDate);
+                if (newDate > firstPaymentDate) {
+                    return res.status(400).json({
+                        success: false,
+                        message: `Loan date cannot be after the first payment date (${firstPaymentDate.toLocaleDateString()})`,
+                    });
+                }
+            }
+
+            await prisma.$transaction(async (tx) => {
+                // Update Loan
+                await tx.loan.update({
+                    where: { id: parseInt(id) },
+                    data: { loanDate: newDate },
+                });
+
+                // Update associated transaction log (LOAN_DISBURSEMENT)
+                // Use relatedLoanId to find it. But TransactionLog might have multiple entries for loan (payments).
+                // We need the DISBURSEMENT one.
+                await tx.transactionLog.updateMany({
+                    where: {
+                        relatedLoanId: parseInt(id),
+                        type: 'LOAN_DISBURSEMENT'
+                    },
+                    data: { createdAt: newDate }
+                });
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            message: 'Loan updated successfully',
+        });
+
+    } catch (error) {
+        console.error('Error in updateLoan:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to update loan',
+            error: error.message,
+        });
+    }
+};
+
 module.exports = {
     createLoan,
     addLoanPayment,
     getAllLoans,
     getLoanById,
     getOverdueLoans,
+    updateLoan,
 };

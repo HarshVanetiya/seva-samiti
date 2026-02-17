@@ -73,6 +73,11 @@ export const loanService = {
         return response.data;
     },
 
+    update: async (id: number, data: any) => {
+        const response = await api.put(`/loans/${id}`, data);
+        return response.data;
+    },
+
     addPayment: async (loanId: number, data: AddPaymentData) => {
         const response = await api.post(`/loans/${loanId}/payments`, data);
         return response.data;

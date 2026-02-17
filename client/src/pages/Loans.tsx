@@ -19,10 +19,12 @@ import {
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import AddIcon from '@mui/icons-material/Add';
+import EditIcon from '@mui/icons-material/Edit';
 import type { Loan } from '../services/loanService';
 import { loanService } from '../services/loanService';
 import DisburseLoanModal from '../components/DisburseLoanModal';
 import AddPaymentModal from '../components/AddPaymentModal';
+import EditLoanModal from '../components/EditLoanModal';
 import { formatDate } from '../utils/dateUtils';
 
 const Loans = () => {
@@ -32,6 +34,7 @@ const Loans = () => {
   const [search, setSearch] = useState('');
   const [disburseLoanOpen, setDisburseLoanOpen] = useState(false);
   const [addPaymentOpen, setAddPaymentOpen] = useState(false);
+  const [editLoanOpen, setEditLoanOpen] = useState(false);
   const [selectedLoan, setSelectedLoan] = useState<Loan | null>(null);
 
   const fetchLoans = async () => {
@@ -83,6 +86,11 @@ const Loans = () => {
   const handleAddPayment = (loan: Loan) => {
     setSelectedLoan(loan);
     setAddPaymentOpen(true);
+  };
+
+  const handleEditLoan = (loan: Loan) => {
+    setSelectedLoan(loan);
+    setEditLoanOpen(true);
   };
 
   // Removed blocking loading check to keep input in focus
@@ -201,15 +209,26 @@ const Loans = () => {
                 </TableCell>
                 <TableCell align="right">
                   {loan.status === 'ACTIVE' && (
-                    <Button 
-                        size="small" 
-                        variant="contained" 
-                        color="success"
-                        onClick={() => handleAddPayment(loan)}
-                        disableElevation
-                    >
-                      Add Payment
-                    </Button>
+                    <Box display="flex" gap={1} justifyContent="flex-end">
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        color="primary"
+                        onClick={() => handleEditLoan(loan)}
+                        startIcon={<EditIcon />}
+                      >
+                        Edit
+                      </Button>
+                      <Button 
+                          size="small" 
+                          variant="contained" 
+                          color="success"
+                          onClick={() => handleAddPayment(loan)}
+                          disableElevation
+                      >
+                        Pay
+                      </Button>
+                    </Box>
                   )}
                 </TableCell>
               </TableRow>
@@ -239,6 +258,17 @@ const Loans = () => {
         onClose={() => {
           setAddPaymentOpen(false);
           setSelectedLoan(null);
+        }}
+        onSuccess={fetchLoans}
+        loan={selectedLoan}
+      />
+
+      {/* Edit Loan Modal */}
+      <EditLoanModal
+        open={editLoanOpen}
+        onClose={() => {
+            setEditLoanOpen(false);
+            setSelectedLoan(null);
         }}
         onSuccess={fetchLoans}
         loan={selectedLoan}

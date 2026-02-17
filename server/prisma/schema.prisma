@@ -131,6 +131,7 @@ model TransactionLog {
 enum LoanStatus {
   ACTIVE
   COMPLETED
+  CANCELLED
 }
 
 enum LoanScheme {
@@ -145,4 +146,5 @@ enum TransactionType {
   LOAN_PAYMENT      // Interest/principal payment from member (+)
   EXPENSE           // Organization expense (-)
   RELEASED_MONEY    // Short-term cash release to member (-)
+  CANCELLED         // Reverted transaction
 }
