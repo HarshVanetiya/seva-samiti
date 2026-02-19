@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Box,
   Typography,
@@ -12,6 +12,8 @@ import {
   Paper,
   CircularProgress,
   Chip,
+  TextField,
+  Stack,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
@@ -34,21 +36,132 @@ interface Transaction {
   };
 }
 
+interface TransactionHistoryResponse {
+  data: {
+    transactions: Transaction[];
+    pagination?: {
+      totalPages: number;
+    };
+  };
+}
+
 const Transactions = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [downloading, setDownloading] = useState(false);
+  const [startMonth, setStartMonth] = useState('');
+  const [endMonth, setEndMonth] = useState('');
   const [donationModalOpen, setDonationModalOpen] = useState(false);
   const [expenseModalOpen, setExpenseModalOpen] = useState(false);
 
   const fetchTransactions = async () => {
     setLoading(true);
     try {
-      const response = await dashboardService.getTransactionHistory({ limit: 100 });
-      setTransactions(response.data.transactions);
+      const getTransactionHistoryPage = (page: number, limit: number) =>
+        dashboardService.getTransactionHistory({ page, limit }) as Promise<TransactionHistoryResponse>;
+
+      const pageLimit = 500;
+      const firstPageResponse = await getTransactionHistoryPage(1, pageLimit);
+      const firstPageTransactions: Transaction[] = firstPageResponse.data.transactions || [];
+      const totalPages: number = firstPageResponse.data.pagination?.totalPages || 1;
+
+      if (totalPages <= 1) {
+        setTransactions(firstPageTransactions);
+        return;
+      }
+
+      const pageRequests: Promise<TransactionHistoryResponse>[] = [];
+      for (let page = 2; page <= totalPages; page += 1) {
+        pageRequests.push(getTransactionHistoryPage(page, pageLimit));
+      }
+
+      const pageResponses = await Promise.all(pageRequests);
+      const otherPageTransactions = pageResponses.flatMap((response) => response.data.transactions || []);
+      setTransactions([...firstPageTransactions, ...otherPageTransactions]);
     } catch (error) {
       console.error('Failed to fetch transactions:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const isInvalidRange = useMemo(() => {
+    return Boolean(startMonth && endMonth && startMonth > endMonth);
+  }, [startMonth, endMonth]);
+
+  const filteredTransactions = useMemo(() => {
+    if (isInvalidRange) return [];
+
+    const startDate = startMonth ? new Date(`${startMonth}-01T00:00:00`) : null;
+    const endDate = endMonth ? new Date(`${endMonth}-01T23:59:59.999`) : null;
+    if (endDate) {
+      endDate.setMonth(endDate.getMonth() + 1, 0);
+    }
+
+    return transactions.filter((tx) => {
+      const txDate = new Date(tx.createdAt);
+      if (startDate && txDate < startDate) return false;
+      if (endDate && txDate > endDate) return false;
+      return true;
+    });
+  }, [transactions, startMonth, endMonth, isInvalidRange]);
+
+  const escapeXml = (value: string) => {
+    return value
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&apos;');
+  };
+
+  const handleDownloadFilteredExcel = () => {
+    if (filteredTransactions.length === 0) return;
+
+    try {
+      setDownloading(true);
+      const headerCells = ['Date', 'Type', 'Description', 'Member', 'Amount'];
+
+      const rows = filteredTransactions.map((tx) => {
+        const isCredit = ['DONATION', 'MEMBERSHIP', 'LOAN_PAYMENT', 'INTEREST_PAYMENT'].includes(tx.type);
+        return [
+          new Date(tx.createdAt).toLocaleString(),
+          tx.type.replace('_', ' '),
+          tx.description || '',
+          tx.member?.name || '-',
+          `${isCredit ? '+' : '-'}${tx.amount}`,
+        ];
+      });
+
+      const tableRowsXml = [headerCells, ...rows]
+        .map((row) => `<Row>${row.map((cell) => `<Cell><Data ss:Type="String">${escapeXml(String(cell))}</Data></Cell>`).join('')}</Row>`)
+        .join('');
+
+      const xml = `<?xml version="1.0"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:o="urn:schemas-microsoft-com:office:office"
+ xmlns:x="urn:schemas-microsoft-com:office:excel"
+ xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:html="http://www.w3.org/TR/REC-html40">
+ <Worksheet ss:Name="Transactions">
+  <Table>${tableRowsXml}</Table>
+ </Worksheet>
+</Workbook>`;
+
+      const blob = new Blob([xml], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      const rangeName = `${startMonth || 'all'}_to_${endMonth || 'all'}`;
+      link.setAttribute('download', `Transactions_${rangeName}.xls`);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode?.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Failed to generate transactions report', error);
+    } finally {
+      setDownloading(false);
     }
   };
 
@@ -122,6 +235,48 @@ const Transactions = () => {
         </Box>
       </Box>
 
+      <Paper elevation={0} sx={{ p: 2, mb: 2, border: '1px solid', borderColor: 'divider' }}>
+        <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems={{ xs: 'stretch', md: 'center' }}>
+          <TextField
+            label="Start Month"
+            type="month"
+            value={startMonth}
+            onChange={(e) => setStartMonth(e.target.value)}
+            InputLabelProps={{ shrink: true }}
+            size="small"
+          />
+          <TextField
+            label="End Month"
+            type="month"
+            value={endMonth}
+            onChange={(e) => setEndMonth(e.target.value)}
+            InputLabelProps={{ shrink: true }}
+            size="small"
+          />
+          <Button
+            variant="text"
+            onClick={() => {
+              setStartMonth('');
+              setEndMonth('');
+            }}
+          >
+            Clear Filter
+          </Button>
+          <Button
+            variant="contained"
+            onClick={handleDownloadFilteredExcel}
+            disabled={downloading || isInvalidRange || filteredTransactions.length === 0}
+          >
+            {downloading ? 'Generating...' : 'Download Excel'}
+          </Button>
+          <Typography variant="body2" color={isInvalidRange ? 'error.main' : 'text.secondary'}>
+            {isInvalidRange
+              ? 'Start month cannot be after end month.'
+              : `Showing ${filteredTransactions.length} of ${transactions.length} transactions`}
+          </Typography>
+        </Stack>
+      </Paper>
+
       <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }}>
         <Table>
           <TableHead>
@@ -135,7 +290,7 @@ const Transactions = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {transactions.map((tx) => (
+            {filteredTransactions.map((tx) => (
               <TableRow key={tx.id} hover>
                 <TableCell>
                   <Typography variant="body2">{formatDate(tx.createdAt)}</Typography>
@@ -184,10 +339,10 @@ const Transactions = () => {
         </Table>
       </TableContainer>
 
-      {transactions.length === 0 && (
+      {filteredTransactions.length === 0 && (
         <Box textAlign="center" py={8} bgcolor="background.paper" sx={{ borderBottomLeftRadius: 8, borderBottomRightRadius: 8, border: '1px solid', borderColor: 'divider', borderTop: 'none' }}>
           <Typography color="text.secondary">
-            No transactions found.
+            {isInvalidRange ? 'Please select a valid date range.' : 'No transactions found for selected period.'}
           </Typography>
         </Box>
       )}
