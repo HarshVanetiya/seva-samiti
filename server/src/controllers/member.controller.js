@@ -277,7 +277,7 @@ const getMemberById = async (req, res) => {
 const updateMember = async (req, res) => {
     try {
         const { id } = req.params;
-        const { name, fathersName, mobile, address } = req.body;
+        const { name, fathersName, mobile, address, accountNumber } = req.body;
 
         // Check if member exists
         const existingMember = await prisma.member.findUnique({
@@ -291,10 +291,24 @@ const updateMember = async (req, res) => {
             });
         }
 
+        // If accountNumber is being changed, check for uniqueness
+        if (accountNumber && accountNumber !== existingMember.accountNumber) {
+            const duplicate = await prisma.member.findUnique({
+                where: { accountNumber },
+            });
+            if (duplicate) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Account number already in use by another member',
+                });
+            }
+        }
+
         // Update member
         const member = await prisma.member.update({
             where: { id: parseInt(id) },
             data: {
+                ...(accountNumber && { accountNumber }),
                 ...(name && { name: name.toUpperCase() }),
                 ...(fathersName && { fathersName: fathersName.toUpperCase() }),
                 mobile: mobile || null,

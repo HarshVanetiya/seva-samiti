@@ -30,10 +30,11 @@ const Members = () => {
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [editingMemberId, setEditingMemberId] = useState<number | null>(null);
   const [editFormData, setEditFormData] = useState<{
+    accountNumber: string;
     name: string;
     fathersName: string;
     mobile: string;
-  }>({ name: '', fathersName: '', mobile: '' });
+  }>({ accountNumber: '', name: '', fathersName: '', mobile: '' });
   const [saveLoading, setSaveLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -52,6 +53,7 @@ const Members = () => {
   const handleEditClick = (member: Member) => {
     setEditingMemberId(member.id);
     setEditFormData({
+      accountNumber: member.accountNumber,
       name: member.name,
       fathersName: member.fathersName,
       mobile: member.mobile || '',
@@ -60,13 +62,14 @@ const Members = () => {
 
   const handleCancelClick = () => {
     setEditingMemberId(null);
-    setEditFormData({ name: '', fathersName: '', mobile: '' });
+    setEditFormData({ accountNumber: '', name: '', fathersName: '', mobile: '' });
   };
 
   const handleSaveClick = async (id: number) => {
     setSaveLoading(true);
     try {
       await memberService.update(id, {
+        accountNumber: editFormData.accountNumber.trim() || undefined,
         name: editFormData.name.trim().toUpperCase(),
         fathersName: editFormData.fathersName.trim().toUpperCase(),
         mobile: editFormData.mobile.trim() || undefined,
@@ -184,7 +187,16 @@ const Members = () => {
             {members.map((member) => (
               <TableRow key={member.id} hover>
                 <TableCell>
-                    <Typography variant="body2" fontWeight="600">{member.accountNumber}</Typography>
+                    {editingMemberId === member.id ? (
+                      <TextField 
+                        size="small" 
+                        value={editFormData.accountNumber} 
+                        onChange={(e) => setEditFormData({...editFormData, accountNumber: e.target.value})}
+                        fullWidth
+                      />
+                    ) : (
+                      <Typography variant="body2" fontWeight="600">{member.accountNumber}</Typography>
+                    )}
                 </TableCell>
                 <TableCell>
                     {editingMemberId === member.id ? (
