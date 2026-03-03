@@ -12,13 +12,13 @@ import {
 } from '@mui/material';
 import Modal from './Modal';
 import { loanService } from '../services/loanService';
-import type { Loan } from '../services/loanService';
+import type { Loan, PaymentSummary } from '../services/loanService';
 import { addPaymentSchema, type AddPaymentFormData } from '../validations/schemas';
 
 interface AddPaymentModalProps {
   open: boolean;
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess: (summary?: PaymentSummary) => void;
   loan: Loan | null;
 }
 
@@ -51,14 +51,15 @@ const AddPaymentModal: React.FC<AddPaymentModalProps> = ({ open, onClose, onSucc
         throw new Error('No loan selected');
       }
 
-      await loanService.addPayment(loan.id, {
+      const response = await loanService.addPayment(loan.id, {
         interestPaid: data.interestPaid,
         principalPaid: data.principalPaid,
         paymentDate: data.paymentDate,
+        suggestedInterest: totalSuggestedInterest,
       });
 
       reset();
-      onSuccess();
+      onSuccess(response.data?.summary);
       onClose();
     } catch (err: any) {
       setError(err.response?.data?.message || err.message || 'Failed to add payment');
@@ -77,7 +78,7 @@ const AddPaymentModal: React.FC<AddPaymentModalProps> = ({ open, onClose, onSucc
 
   useEffect(() => {
     if (open && loan) {
-      setLoading(true); // Reuse loading state or create a specific one? Reuse might disable buttons which is fine.
+      setLoading(true);
       loanService.getById(loan.id)
         .then((response) => {
           setFullLoan(response.data.loan);
@@ -96,48 +97,37 @@ const AddPaymentModal: React.FC<AddPaymentModalProps> = ({ open, onClose, onSucc
 
   const paymentDate = watch('paymentDate');
 
-  // Removed early return here: if (!loan) return null;
-
   const displayLoan = fullLoan || loan;
 
   // 1. Determine Last Payment Date
-  // If payments exist, use the most recent payment date. Otherwise, use the loan creation date.
   const lastPaymentDate = displayLoan?.payments && displayLoan.payments.length > 0
-    ? displayLoan.payments[0].paymentDate // Assuming payments are ordered by date desc from backend
+    ? displayLoan.payments[0].paymentDate
     : displayLoan?.loanDate;
 
   // 2. Calculate Time Period (Months)
-  // Logic: Count full months. e.g., Feb to Oct = 8 months.
   const calculateMonths = (startDateStr?: string, endDateStr?: string) => {
     if (!startDateStr || !endDateStr) return 0;
     const start = new Date(startDateStr);
     const end = new Date(endDateStr);
-    
-    // Calculate difference in months
-    // (Year2 - Year1) * 12 + (Month2 - Month1)
     let months = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
-    
-    // If the day of the end date is explicitly before the day of start date?
-    // User requirement: "no matter when last payment date was in 1st of that month or 30th count time period on basis of month only"
-    // So distinct month difference is strictly what they requested.
-    
     return Math.max(0, months);
   };
 
   const monthsPassed = calculateMonths(lastPaymentDate, paymentDate);
 
   // 3. Calculate Interest Per Month
-  // OLD_SCHEME: Interest on Original Principal
-  // NEW_SCHEME: Interest on Remaining Balance
-  // Handle case where displayLoan might be null safely (though we won't render if it is)
   const interestPerMonth = displayLoan
     ? (displayLoan.scheme === 'OLD_SCHEME'
         ? Math.round(displayLoan.principalAmount * (displayLoan.interestRate / 100))
         : Math.round(displayLoan.remainingBalance * (displayLoan.interestRate / 100)))
     : 0;
 
-  // 4. Calculate Total Suggested Interest
-  const totalSuggestedInterest = monthsPassed * interestPerMonth;
+  // 4. Pending interest from previous partial payments
+  const pendingFromPrevious = displayLoan?.pendingInterest || 0;
+
+  // 5. Calculate Total Suggested Interest (months interest + pending from last time)
+  const monthsInterest = monthsPassed * interestPerMonth;
+  const totalSuggestedInterest = monthsInterest + pendingFromPrevious;
 
   // Auto-fill suggested interest
   useEffect(() => {
@@ -197,8 +187,21 @@ const AddPaymentModal: React.FC<AddPaymentModalProps> = ({ open, onClose, onSucc
             <Typography variant="body2" gutterBottom>
               <strong>Interest Per Month:</strong> ₹{interestPerMonth.toLocaleString()}
             </Typography>
+            <Typography variant="body2" gutterBottom>
+              <strong>Interest for {monthsPassed} month{monthsPassed !== 1 ? 's' : ''}:</strong> ₹{monthsInterest.toLocaleString()}
+            </Typography>
+            {pendingFromPrevious > 0 && (
+              <Typography variant="body2" gutterBottom sx={{ color: 'warning.main', fontWeight: 600 }}>
+                <strong>Pending from previous:</strong> ₹{pendingFromPrevious.toLocaleString()}
+              </Typography>
+            )}
             <Typography variant="subtitle1" color="primary" sx={{ mt: 1, fontWeight: 'bold' }}>
               Suggested Interest: ₹{totalSuggestedInterest.toLocaleString()}
+              {pendingFromPrevious > 0 && (
+                <Typography component="span" variant="caption" color="text.secondary">
+                  {' '}(₹{monthsInterest.toLocaleString()} + ₹{pendingFromPrevious.toLocaleString()} pending)
+                </Typography>
+              )}
             </Typography>
           </Box>
         </Box>
@@ -227,9 +230,8 @@ const AddPaymentModal: React.FC<AddPaymentModalProps> = ({ open, onClose, onSucc
           type="number"
           {...register('interestPaid', { valueAsNumber: true })}
           error={!!errors.interestPaid}
-          helperText={errors.interestPaid?.message || `Suggested for ${monthsPassed} months: ₹${totalSuggestedInterest}`}
+          helperText={errors.interestPaid?.message || `Suggested: ₹${totalSuggestedInterest.toLocaleString()}`}
           fullWidth
-          
           inputProps={{ min: 0 }}
           placeholder={`Suggested: ₹${totalSuggestedInterest}`}
         />

@@ -20,11 +20,12 @@ import {
 import SearchIcon from '@mui/icons-material/Search';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
-import type { Loan } from '../services/loanService';
+import type { Loan, PaymentSummary } from '../services/loanService';
 import { loanService } from '../services/loanService';
 import DisburseLoanModal from '../components/DisburseLoanModal';
 import AddPaymentModal from '../components/AddPaymentModal';
 import EditLoanModal from '../components/EditLoanModal';
+import PaymentSummaryModal from '../components/PaymentSummaryModal';
 import { formatDate } from '../utils/dateUtils';
 
 const Loans = () => {
@@ -36,6 +37,8 @@ const Loans = () => {
   const [addPaymentOpen, setAddPaymentOpen] = useState(false);
   const [editLoanOpen, setEditLoanOpen] = useState(false);
   const [selectedLoan, setSelectedLoan] = useState<Loan | null>(null);
+  const [summaryOpen, setSummaryOpen] = useState(false);
+  const [paymentSummary, setPaymentSummary] = useState<PaymentSummary | null>(null);
 
   const fetchLoans = async () => {
     setLoading(true);
@@ -86,6 +89,14 @@ const Loans = () => {
   const handleAddPayment = (loan: Loan) => {
     setSelectedLoan(loan);
     setAddPaymentOpen(true);
+  };
+
+  const handlePaymentSuccess = (summary?: PaymentSummary) => {
+    fetchLoans();
+    if (summary) {
+      setPaymentSummary(summary);
+      setSummaryOpen(true);
+    }
   };
 
   const handleEditLoan = (loan: Loan) => {
@@ -164,6 +175,7 @@ const Loans = () => {
               <TableCell align="center">Interest Rate</TableCell>
               <TableCell align="right">Remaining</TableCell>
               <TableCell align="right">Interest Paid</TableCell>
+              <TableCell align="right">Pending</TableCell>
               <TableCell align="center">Payments</TableCell>
               <TableCell>Loan Date</TableCell>
               <TableCell>Scheme</TableCell>
@@ -172,7 +184,7 @@ const Loans = () => {
           </TableHead>
           <TableBody>
             {loans.map((loan) => (
-              <TableRow key={loan.id} hover>
+              <TableRow key={loan.id} hover sx={loan.pendingInterest > 0 ? { bgcolor: 'warning.50' } : undefined}>
                 <TableCell>
                     <Typography variant="body2" fontWeight="600">{loan.member?.name}</Typography>
                 </TableCell>
@@ -192,6 +204,15 @@ const Loans = () => {
                     <Typography variant="body2" color="success.main">
                         ₹{loan.totalInterestPaid.toLocaleString()}
                     </Typography>
+                </TableCell>
+                <TableCell align="right">
+                    {loan.pendingInterest > 0 ? (
+                      <Typography variant="body2" fontWeight={600} color="warning.main">
+                        ₹{loan.pendingInterest.toLocaleString()}
+                      </Typography>
+                    ) : (
+                      <Typography variant="body2" color="text.secondary">—</Typography>
+                    )}
                 </TableCell>
                 <TableCell align="center">
                   <Chip label={loan._count?.payments || 0} size="small" />
@@ -259,7 +280,7 @@ const Loans = () => {
           setAddPaymentOpen(false);
           setSelectedLoan(null);
         }}
-        onSuccess={fetchLoans}
+        onSuccess={handlePaymentSuccess}
         loan={selectedLoan}
       />
 
@@ -272,6 +293,16 @@ const Loans = () => {
         }}
         onSuccess={fetchLoans}
         loan={selectedLoan}
+      />
+
+      {/* Payment Summary Modal */}
+      <PaymentSummaryModal
+        open={summaryOpen}
+        onClose={() => {
+          setSummaryOpen(false);
+          setPaymentSummary(null);
+        }}
+        summary={paymentSummary}
       />
     </Box>
   );

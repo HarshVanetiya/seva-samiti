@@ -7,6 +7,7 @@ export interface Loan {
     remainingBalance: number;
     interestRate: number;
     totalInterestPaid: number;
+    pendingInterest: number;
     loanDate: string;
     completedAt?: string;
     status: 'ACTIVE' | 'COMPLETED';
@@ -43,6 +44,20 @@ export interface AddPaymentData {
     interestPaid: number;
     principalPaid: number;
     paymentDate?: string;
+    suggestedInterest: number;
+}
+
+export interface PaymentSummary {
+    memberName: string;
+    accountNumber: string;
+    interestPaid: number;
+    principalPaid: number;
+    totalPaid: number;
+    previousPending: number;
+    newPending: number;
+    remainingBalance: number;
+    paymentDate: string;
+    loanStatus: string;
 }
 
 export const loanService = {

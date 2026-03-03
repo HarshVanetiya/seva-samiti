@@ -81,6 +81,7 @@ model Loan {
   completedAt        DateTime?
   scheme             LoanScheme    @default(NEW_SCHEME) // NEW_SCHEME or OLD_SCHEME calculation method
   totalInterestPaid  Float         @default(0)
+  pendingInterest    Float         @default(0) // Accumulated unpaid interest from partial payments
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
   

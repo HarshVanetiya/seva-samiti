@@ -122,13 +122,13 @@ const createLoan = async (req, res) => {
 const addLoanPayment = async (req, res) => {
     try {
         const { loanId } = req.params;
-        const { category } = req.query; // Check if this is relevant, actually focusing on addLoanPayment
 
         const {
             interestPaid,
             interestAmount: _interestAmount,
             principalPaid = 0,
             paymentDate,
+            suggestedInterest = 0, // Full suggested interest (months * rate + old pending)
         } = req.body;
 
         // Create a single interestAmount variable
@@ -170,6 +170,11 @@ const addLoanPayment = async (req, res) => {
             });
         }
 
+        // Calculate new pending interest
+        // newPending = suggestedInterest - interestPaid (cannot go below 0)
+        const previousPending = loan.pendingInterest || 0;
+        const newPendingInterest = Math.max(0, suggestedInterest - interestAmount);
+
         // Process payment in transaction
         const result = await prisma.$transaction(async (tx) => {
             const totalPayment = interestAmount + principalPaid;
@@ -184,7 +189,7 @@ const addLoanPayment = async (req, res) => {
                 },
             });
 
-            // 2. Update loan
+            // 2. Update loan (including pending interest)
             const newRemainingBalance = loan.remainingBalance - principalPaid;
             const isCompleted = newRemainingBalance === 0;
 
@@ -193,6 +198,7 @@ const addLoanPayment = async (req, res) => {
                 data: {
                     remainingBalance: newRemainingBalance,
                     totalInterestPaid: { increment: interestAmount },
+                    pendingInterest: newPendingInterest,
                     status: isCompleted ? 'COMPLETED' : 'ACTIVE',
                     completedAt: isCompleted ? new Date() : null,
                 },
@@ -225,12 +231,27 @@ const addLoanPayment = async (req, res) => {
             return { payment, loan: updatedLoan };
         });
 
+        // Return detailed summary for the receipt modal
         res.status(201).json({
             success: true,
             message: result.loan.status === 'COMPLETED'
                 ? 'Loan settled successfully'
                 : 'Payment added successfully',
-            data: result,
+            data: {
+                ...result,
+                summary: {
+                    memberName: loan.member.name,
+                    accountNumber: loan.member.accountNumber,
+                    interestPaid: interestAmount,
+                    principalPaid,
+                    totalPaid: interestAmount + principalPaid,
+                    previousPending,
+                    newPending: newPendingInterest,
+                    remainingBalance: result.loan.remainingBalance,
+                    paymentDate: paymentDate || new Date().toISOString(),
+                    loanStatus: result.loan.status,
+                },
+            },
         });
     } catch (error) {
         console.error('Error in addLoanPayment:', error);
