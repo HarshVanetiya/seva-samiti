@@ -15,8 +15,9 @@ const getDatabaseBackup = async (req, res) => {
         }
 
         // Parse DB URL to get credentials
-        // Format: postgres://user:password@host:port/dbname
-        const match = dbUrl.match(/postgres:\/\/([^:]+):([^@]+)@([^:]+):(\d+)\/(.+)/);
+        // Format: postgresql://user:password@host:port/dbname or postgres://user:password@host:port/dbname
+        const cleanUrl = dbUrl.replace(/^["']|["']$/g, ''); // Strip surrounding quotes if any
+        const match = cleanUrl.match(/postgres(?:ql)?:\/\/([^:]+):([^@]+)@([^:]+):(\d+)\/([^?"'\s]+)/);
         if (!match) {
             throw new Error('Invalid DATABASE_URL format');
         }
